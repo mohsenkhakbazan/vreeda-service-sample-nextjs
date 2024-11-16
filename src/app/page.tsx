@@ -45,10 +45,18 @@ export default function Home() {
       if (!response.ok) {
         throw new Error("Failed to revoke grant");
       }
-      signOut(); // Log out after revoking the grant
+      await logoutAzureB2C(); // Log out after revoking the grant
     } catch (error) {
       console.error("Error revoking grant:", error);
     }
+  };
+
+  const loginAzureADB2C = async () => {
+    await signIn('azure-ad-b2c')
+  };
+
+  const logoutAzureB2C = async () => {
+    await signOut();
   };
 
   return (
@@ -79,7 +87,7 @@ export default function Home() {
               }}
             >
               {/* Logout Button */}
-              <Button variant="outlined" color="primary" onClick={() => signOut()}>
+              <Button variant="outlined" color="primary" onClick={logoutAzureB2C}>
                 Logout
               </Button>
               {/* Revoke Button */}
@@ -107,8 +115,8 @@ export default function Home() {
             <Typography variant="body1" gutterBottom>
               Please sign in to activate service.
             </Typography>
-                          {/* SignIn Button */}
-            <Button variant="outlined" color="primary" onClick={() => signIn('azure-ad-b2c')}>
+            {/* SignIn Button */}
+            <Button variant="outlined" color="primary" onClick={loginAzureADB2C}>
               Sign In
             </Button>
           </>
