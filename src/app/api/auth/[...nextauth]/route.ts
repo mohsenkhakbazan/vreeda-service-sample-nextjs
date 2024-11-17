@@ -17,7 +17,7 @@ export const authOptions: AuthOptions = {
         authorization: {
             params: {
                 scope: process.env.AZURE_AD_B2C_CLIENT_ID! + " offline_access openid",
-                prompt: "login", // Force the login screen
+                //prompt: "login", // Force the login screen
             },
         },
         profile(profile) {

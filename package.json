@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "start-docker": "docker compose up -d",
-    "stop-docker": "docker compose down"
+    "start-docker": "podman compose up -d",
+    "stop-docker": "podman compose down"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",

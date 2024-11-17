@@ -6,6 +6,9 @@ export interface DeviceStateValue<T> {
 export interface DeviceResponseStateModel {
     on?: DeviceStateValue<boolean>,
     v?: DeviceStateValue<number>,
+    s?: DeviceStateValue<number>,
+    h?: DeviceStateValue<number>,
+    program?: DeviceStateValue<string>,
 }
 
 export interface DeviceConfigModel {
@@ -38,6 +41,8 @@ export type DevicesResponse = Record<string, DeviceResponseModel>;
 export interface DeviceRequestStateModel {
     on?: boolean,
     v?: number,
+    s?: number,
+    h?: number,
     program?: string,
     pattern?: string,
     playing?: boolean,
