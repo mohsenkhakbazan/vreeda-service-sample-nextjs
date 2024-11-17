@@ -188,6 +188,28 @@ export default function DeviceControl({
           <Button variant="contained" color="secondary" onClick={setPresetDefault}>
             Default
           </Button>
+          <Button variant="contained" color="primary" onClick={async () => {
+              const duration = 5000; // 5 seconds
+              const steps = 50;
+              const interval = duration / steps;
+              for (let i = 0; i <= steps; i++) {
+          const newBrightness = 1 - (i / steps);
+          setBrightness(newBrightness);
+          try {
+            await updateDevice(id, {
+              states: {
+                v: newBrightness,
+              },
+            });
+          } catch (error) {
+            console.log('Failed to update brightness:', error);
+          }
+          await new Promise((resolve) => setTimeout(resolve, interval));
+              }
+            }}
+          >
+            Dimming
+          </Button>
         </Box>
       </CardContent>
     </Card>
