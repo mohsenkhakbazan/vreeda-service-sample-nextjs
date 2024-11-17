@@ -1,9 +1,19 @@
-import { DeviceRequestModel, DeviceRequestStateModel, DeviceResponseModel } from '@/types/vreedaApi';
-import { Box, Card, CardContent, Checkbox, FormControlLabel, Slider, Switch, Typography } from '@mui/material';
+import { DeviceRequestModel, DeviceResponseModel } from '@/types/vreedaApi';
+import { Box, Card, CardContent, Checkbox, FormControlLabel, Slider, Switch, Typography, Button } from '@mui/material';
 import { useState } from 'react';
 
-export default function DeviceControl({ id, model, selected, onSelectionChange }: { id: string, model: DeviceResponseModel, selected: boolean, onSelectionChange: (id: string, selected: boolean) => void }) {
-  const [isOn, setIsOn] = useState(model.states?.on?.value);
+export default function DeviceControl({
+  id,
+  model,
+  selected,
+  onSelectionChange,
+}: {
+  id: string;
+  model: DeviceResponseModel;
+  selected: boolean;
+  onSelectionChange: (id: string, selected: boolean) => void;
+}) {
+  const [isOn, setIsOn] = useState(model.states?.on?.value || false);
   const [brightness, setBrightness] = useState(model.states?.v?.value || 0);
   const [hue, setHue] = useState(model.states?.h?.value || 0);
   const [saturation, setSaturation] = useState(model.states?.s?.value || 0);
@@ -26,52 +36,58 @@ export default function DeviceControl({ id, model, selected, onSelectionChange }
       console.log('Device updated successfully:', data);
       return data;
     } catch (error) {
-      console.log('Error updating device:', error);
+      console.error('Error updating device:', error);
       throw error;
     }
   }
 
-  const toggleDevice = async () => {
-    try {
-      await updateDevice(id, {
-        states: { on: !isOn },
-      });
-      setIsOn(!isOn);
-    } catch (error) {
-      console.log('Failed to update device state:', error);
-    }
-  };
-
   const handleSliderChange = async (type: 'v' | 'h' | 's', value: number) => {
-    const newState: DeviceRequestStateModel = {};
+    // Local state update
+    if (type === 'v') setBrightness(value);
+    if (type === 'h') setHue(value);
+    if (type === 's') setSaturation(value);
 
-    // Update the local state
-    if (type === 'v') {
-      newState.v = value;
-      setBrightness(value)
-    }
-    else if (type === 'h') {
-      newState.h = value; 
-      newState.program = "color";
-      setHue(value); 
-    } else if (type === 's') { 
-      newState.s = value;
-      newState.program = "color";
-      setSaturation(value); 
-    }
-  
+    // Server state update
+    const updatedState: Record<string, any> = {
+      h: type === 'h' ? value : hue,
+      s: type === 's' ? value : saturation,
+      v: type === 'v' ? value : brightness,
+      program: 'color',
+    };
 
-    // Send the updated state to the server
     try {
-      await updateDevice(id, { states: newState });
+      await updateDevice(id, { states: updatedState });
     } catch (error) {
-      console.log(`Failed to update ${type} value:`, error);
+      console.error(`Failed to update ${type} value:`, error);
     }
   };
 
-  const handleSelectionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const isChecked = event.target.checked;
-    onSelectionChange(id, isChecked);
+  const setPresetFitGuard = async () => {
+    const h = 0.43999999;
+    const s = 1;
+    const v = 1;
+
+    setHue(h);
+    setSaturation(s);
+    setBrightness(v);
+
+    try {
+      await updateDevice(id, { states: { h, s, v, program: 'color' } });
+    } catch (error) {
+      console.error('Failed to set FitGuard preset:', error);
+    }
+  };
+
+  const setPresetDefault = async () => {
+    const s = 0;
+
+    setSaturation(s);
+
+    try {
+      await updateDevice(id, { states: { h: hue, s, v: brightness, program: 'color' } });
+    } catch (error) {
+      console.error('Failed to set Default preset:', error);
+    }
   };
 
   return (
@@ -83,22 +99,28 @@ export default function DeviceControl({ id, model, selected, onSelectionChange }
             control={
               <Checkbox
                 checked={selected}
-                onChange={handleSelectionChange}
+                onChange={(event) => onSelectionChange(id, event.target.checked)}
                 color="primary"
               />
             }
             label=""
             sx={{ mr: 1 }}
           />
-          <Typography variant="h6">
-            {model.tags?.customDeviceName || 'Unnamed Device'}
-          </Typography>
-          {/* Switch positioned at top-right corner */}
+          <Typography variant="h6">{model.tags?.customDeviceName || 'Unnamed Device'}</Typography>
+          {/* On/Off Switch */}
           <FormControlLabel
             control={
               <Switch
-                checked={isOn || false}
-                onChange={toggleDevice}
+                checked={isOn}
+                onChange={async () => {
+                  const newIsOn = !isOn;
+                  setIsOn(newIsOn);
+                  try {
+                    await updateDevice(id, { states: { on: newIsOn } });
+                  } catch (error) {
+                    console.error('Failed to toggle device:', error);
+                  }
+                }}
                 color="primary"
                 disabled={!model.connected?.value}
               />
@@ -125,7 +147,6 @@ export default function DeviceControl({ id, model, selected, onSelectionChange }
             max={1}
             step={0.1}
             color="primary"
-            aria-labelledby="brightness-slider"
           />
         </Box>
 
@@ -138,10 +159,9 @@ export default function DeviceControl({ id, model, selected, onSelectionChange }
             value={hue}
             onChange={(event, value) => handleSliderChange('h', value as number)}
             min={0}
-            max={1} // Assuming hue is in degrees
+            max={1}
             step={0.01}
             color="primary"
-            aria-labelledby="hue-slider"
           />
         </Box>
 
@@ -157,8 +177,17 @@ export default function DeviceControl({ id, model, selected, onSelectionChange }
             max={1}
             step={0.1}
             color="primary"
-            aria-labelledby="saturation-slider"
           />
+        </Box>
+
+        {/* Buttons for Presets */}
+        <Box mt={3} display="flex" gap={2}>
+          <Button variant="contained" color="primary" onClick={setPresetFitGuard}>
+            FitGuard
+          </Button>
+          <Button variant="contained" color="secondary" onClick={setPresetDefault}>
+            Default
+          </Button>
         </Box>
       </CardContent>
     </Card>
